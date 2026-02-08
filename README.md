@@ -416,6 +416,82 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
+        .confirmation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .confirmation-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .confirmation-content {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .confirmation-modal.active .confirmation-content {
+            transform: translateY(0);
+        }
+
+        .confirmation-content h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .confirmation-text {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--dark);
+            line-height: 1.5;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .confirmation-buttons button {
+            flex: 1;
+            padding: 18px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .confirm-yes {
+            background: linear-gradient(90deg, var(--success), #219653);
+            color: white;
+        }
+
+        .confirm-no {
+            background: linear-gradient(90deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -451,6 +527,14 @@
             .btn {
                 padding: 20px;
                 min-height: 65px;
+            }
+            
+            .confirmation-content {
+                padding: 25px;
+            }
+            
+            .confirmation-buttons {
+                flex-direction: column;
             }
         }
 
@@ -700,6 +784,23 @@
         </div>
     </div>
 
+    <div class="confirmation-modal" id="confirmation-modal">
+        <div class="confirmation-content">
+            <h3><i class="fas fa-question-circle"></i> Подтверждение ответа</h3>
+            <div class="confirmation-text" id="confirmation-text">
+                Вы выбрали вариант ответа. Вы уверены, что хотите подтвердить этот выбор?
+            </div>
+            <div class="confirmation-buttons">
+                <button class="confirm-yes" id="confirm-yes">
+                    <i class="fas fa-check"></i> Да, подтверждаю
+                </button>
+                <button class="confirm-no" id="confirm-no">
+                    <i class="fas fa-times"></i> Нет, выбрать другой
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const quizData = [
             {
@@ -884,6 +985,11 @@
         const rulesBackButton = document.getElementById('rules-back-btn');
         const startGameButton = document.getElementById('start-game-btn');
         
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmationText = document.getElementById('confirmation-text');
+        const confirmYesButton = document.getElementById('confirm-yes');
+        const confirmNoButton = document.getElementById('confirm-no');
+        
         let currentQuestionIndex = 0;
         let score = 0;
         let playerName = '';
@@ -894,6 +1000,8 @@
         let answerSubmitted = false;
         let totalGameTime = 0;
         let questionStartTime = 0;
+        let pendingOptionElement = null;
+        let pendingOptionIndex = null;
         
         function initGame() {
             currentQuestionIndex = 0;
@@ -902,6 +1010,8 @@
             selectedOption = null;
             answerSubmitted = false;
             totalGameTime = 0;
+            pendingOptionElement = null;
+            pendingOptionIndex = null;
             
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -937,10 +1047,10 @@
                     <span class="option-text">${option}</span>
                 `;
                 
-                optionElement.addEventListener('click', () => selectOption(optionElement, index));
+                optionElement.addEventListener('click', () => showConfirmation(optionElement, index));
                 optionElement.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    selectOption(optionElement, index);
+                    showConfirmation(optionElement, index);
                 }, { passive: false });
                 
                 optionsContainer.appendChild(optionElement);
@@ -949,8 +1059,67 @@
             nextButton.disabled = true;
             answerSubmitted = false;
             selectedOption = null;
+            pendingOptionElement = null;
+            pendingOptionIndex = null;
             
             startTimerForQuestion();
+        }
+        
+        function showConfirmation(optionElement, optionIndex) {
+            if (answerSubmitted) return;
+            
+            pendingOptionElement = optionElement;
+            pendingOptionIndex = optionIndex;
+            
+            const optionLabels = ['а', 'б', 'в', 'г'];
+            const optionText = optionElement.querySelector('.option-text').textContent;
+            
+            confirmationText.innerHTML = `Вы выбрали вариант <strong>${optionLabels[optionIndex]}) ${optionText}</strong>.<br>Вы уверены, что хотите подтвердить этот выбор?`;
+            
+            confirmationModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function hideConfirmation() {
+            confirmationModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function confirmSelection() {
+            if (pendingOptionElement && pendingOptionIndex !== null) {
+                document.querySelectorAll('.option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                pendingOptionElement.classList.add('selected');
+                selectedOption = pendingOptionIndex;
+                
+                pendingOptionElement.classList.add('pulse');
+                setTimeout(() => {
+                    pendingOptionElement.classList.remove('pulse');
+                }, 300);
+                
+                nextButton.disabled = false;
+                
+                setTimeout(() => {
+                    if (!answerSubmitted && selectedOption !== null) {
+                        checkAnswer();
+                        nextButton.disabled = false;
+                    }
+                }, 1000);
+            }
+            
+            hideConfirmation();
+        }
+        
+        function cancelSelection() {
+            if (pendingOptionElement) {
+                pendingOptionElement.classList.remove('selected');
+            }
+            pendingOptionElement = null;
+            pendingOptionIndex = null;
+            selectedOption = null;
+            hideConfirmation();
         }
         
         function startTimerForQuestion() {
@@ -980,31 +1149,6 @@
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     handleTimeout();
-                }
-            }, 1000);
-        }
-        
-        function selectOption(optionElement, optionIndex) {
-            if (answerSubmitted) return;
-            
-            document.querySelectorAll('.option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            
-            optionElement.classList.add('selected');
-            selectedOption = optionIndex;
-            
-            optionElement.classList.add('pulse');
-            setTimeout(() => {
-                optionElement.classList.remove('pulse');
-            }, 300);
-            
-            nextButton.disabled = false;
-            
-            setTimeout(() => {
-                if (!answerSubmitted && selectedOption !== null) {
-                    checkAnswer();
-                    nextButton.disabled = false;
                 }
             }, 1000);
         }
@@ -1207,13 +1351,36 @@
             nextButton.click();
         }, { passive: false });
         
+        confirmYesButton.addEventListener('click', () => {
+            confirmSelection();
+        });
+        
+        confirmNoButton.addEventListener('click', () => {
+            cancelSelection();
+        });
+        
+        confirmationModal.addEventListener('click', (e) => {
+            if (e.target === confirmationModal) {
+                cancelSelection();
+            }
+        });
+        
         document.addEventListener('keydown', (e) => {
+            if (confirmationModal.classList.contains('active')) {
+                if (e.key === 'Enter') {
+                    confirmSelection();
+                } else if (e.key === 'Escape') {
+                    cancelSelection();
+                }
+                return;
+            }
+            
             if (!answerSubmitted && e.key >= '1' && e.key <= '4') {
                 const optionIndex = parseInt(e.key) - 1;
                 const optionElement = document.querySelectorAll('.option')[optionIndex];
                 
                 if (optionElement) {
-                    selectOption(optionElement, optionIndex);
+                    showConfirmation(optionElement, optionIndex);
                 }
             }
             
