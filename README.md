@@ -1,4 +1,3 @@
-
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -776,7 +775,7 @@
                 
                 <div class="share-section">
                     <h3><i class="fas fa-share-alt"></i> Отправить результат</h3>
-                    <a href="https://t.me/seshhollowbones" class="telegram-btn" target="_blank">
+                    <a href="https://t.me/+OLWqTu8sU4cyZWY6" class="telegram-btn" target="_blank">
                         <i class="fab fa-telegram"></i> Отправить результаты в Telegram
                     </a>
                 </div>
@@ -815,7 +814,7 @@
             },
             {
                 question: "Площадь многонационального округа — 850 км². Леса занимают 36 %, пашни — 42 %. Остальная территория — поселения и дороги (в соотношении 3 : 1). Какова площадь дорог?",
-                options: ["42,5 км²", "42,5 км² (точнее: 42,5 км²)", "51 км²", "68 км²"],
+                options: ["42,5 км²", "66 км²", "51 км²", "68 км²"],
                 correct: 0
             },
             {
